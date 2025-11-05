@@ -2,6 +2,8 @@ import random
 import numpy as np
 from functools import lru_cache
 
+
+# winning combinations for Tic-Tac-Toe (indices board)
 WIN_COMBOS = [
     (0,1,2), (3,4,5), (6,7,8),
     (0,3,6), (1,4,7), (2,5,8),
@@ -14,6 +16,7 @@ def check_winner_static(board):
             return board[a]
     return None
 
+# minimax algorithm with caching to compute the best move for ai
 @lru_cache(maxsize=None)
 def minimax_cached(board_tuple, is_maximizing):
     winner = check_winner_static(board_tuple)
@@ -62,6 +65,7 @@ class TicTacToe:
     def game_over(self):
         return self.check_winner() is not None or self.is_board_full()
 
+    # Compute the best move for the AI using minimax.
     def get_best_move(self):
         best_score = float("-inf")
         best_move = None
@@ -77,6 +81,7 @@ class TicTacToe:
         return best_move
 
 
+# Generate training data for AI by simulating games.
 def generate_training_data(num_games):
     data = []
 
