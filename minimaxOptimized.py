@@ -1,121 +1,155 @@
 import random
 import numpy as np
-from functools import lru_cache
-
-
-# winning combinations for Tic-Tac-Toe (indices board)
-WIN_COMBOS = [
-    (0,1,2), (3,4,5), (6,7,8),
-    (0,3,6), (1,4,7), (2,5,8),
-    (0,4,8), (2,4,6)
-]
-
-def check_winner_static(board):
-    for a,b,c in WIN_COMBOS:
-        if board[a] == board[b] == board[c] != 0:
-            return board[a]
-    return None
-
-# minimax algorithm with caching to compute the best move for ai
-@lru_cache(maxsize=None)
-def minimax_cached(board_tuple, is_maximizing):
-    winner = check_winner_static(board_tuple)
-    if winner == 1: return 1
-    if winner == -1: return -1
-    if 0 not in board_tuple: return 0
-
-    if is_maximizing:
-        best_score = float("-inf")
-        for i, spot in enumerate(board_tuple):
-            if spot == 0:
-                new_board = list(board_tuple)
-                new_board[i] = 1
-                best_score = max(best_score, minimax_cached(tuple(new_board), False))
-        return best_score
-    else:
-        best_score = float("inf")
-        for i, spot in enumerate(board_tuple):
-            if spot == 0:
-                new_board = list(board_tuple)
-                new_board[i] = -1
-                best_score = min(best_score, minimax_cached(tuple(new_board), True))
-        return best_score
 
 class TicTacToe:
     def __init__(self):
-        self.board = [0]*9
-        self.ai = 1
-        self.human = -1
+        self.board = [" " for _ in range(9)]
+        self.human = "O"
+        self.ai = "X"
+
+    def print_board(self):
+        for i in range(0, 9, 3):
+            print(f"{self.board[i]} | {self.board[i+1]} | {self.board[i+2]}")
+            if i < 6:
+                print("---------")
 
     def available_moves(self):
-        return [i for i, spot in enumerate(self.board) if spot == 0]
-
+        return [i for i, spot in enumerate(self.board) if spot == " "]
+    
     def make_move(self, position, player):
-        if self.board[position] == 0:
+        if self.board[position] == " ":
             self.board[position] = player
             return True
         return False
-
+    
     def is_board_full(self):
-        return 0 not in self.board
-
+        return " " not in self.board
+    
     def check_winner(self):
-        return check_winner_static(self.board)
-
+        # Check rows
+        for i in range(0, 9, 3):
+            if self.board[i] == self.board[i+1] == self.board[i+2] != " ":
+                return self.board[i]
+        
+        # Check columns
+        for i in range(3):
+            if self.board[i] == self.board[i+3] == self.board[i+6] != " ":
+                return self.board[i]
+        
+        # Check diagonals
+        if self.board[0] == self.board[4] == self.board[8] != " ":
+            return self.board[0]
+        if self.board[2] == self.board[4] == self.board[6] != " ":
+            return self.board[2]
+        
+        return None
+    
     def game_over(self):
         return self.check_winner() is not None or self.is_board_full()
-
-    # Compute the best move for the AI using minimax.
-    def get_best_move(self):
+    
+    def minimax_for_player(self, depth, is_maximizing, player, opponent):
+        winner = self.check_winner()
+        if winner == player:
+            return 1
+        if winner == opponent:
+            return -1
+        if self.is_board_full():
+            return 0
+        
+        if depth >= 6:
+            return 0
+        
+        if is_maximizing:
+            best_score = float("-inf")
+            for move in self.available_moves():
+                self.board[move] = player
+                score = self.minimax_for_player(depth + 1, False, player, opponent)
+                self.board[move] = " "
+                best_score = max(score, best_score)
+            return best_score
+        else:
+            best_score = float("inf")
+            for move in self.available_moves():
+                self.board[move] = opponent
+                score = self.minimax_for_player(depth + 1, True, player, opponent)
+                self.board[move] = " "
+                best_score = min(score, best_score)
+            return best_score
+    
+    def get_best_move_for_player(self, player):
+        """Get best move for any player"""
         best_score = float("-inf")
         best_move = None
-        board_tuple = tuple(self.board)
+        opponent = self.human if player == self.ai else self.ai
 
         for move in self.available_moves():
-            new_board = list(board_tuple)
-            new_board[move] = self.ai
-            score = minimax_cached(tuple(new_board), False)
+            self.board[move] = player
+            score = self.minimax_for_player(0, False, player, opponent)
+            self.board[move] = " "
+
             if score > best_score:
                 best_score = score
                 best_move = move
+
         return best_move
+    
+    def get_best_move(self):
+        """Get best move for AI"""
+        return self.get_best_move_for_player(self.ai)
 
 
-# Generate training data for AI by simulating games.
-def generate_training_data(num_games):
-    data = []
-
-    for _ in range(num_games):
+def generate_training_data(n_games=5000):
+    """Generate training data from tic-tac-toe games"""
+    dataset = []
+    
+    for game_num in range(n_games):
+        if game_num % 10 == 0:
+            print(f"Generated {game_num} games...")
+        
         game = TicTacToe()
-        ai_turn = random.choice([True, False])
-
+        
+        # Randomly decide who starts
+        first_player = random.choice([game.ai, game.human])
+        current_player = first_player
+        
         while not game.game_over():
-            if ai_turn:
+            # Encode from AI's perspective
+            board_state = [1 if x == game.ai else -1 if x == game.human else 0 
+                          for x in game.board]
+            
+            # Only collect data when AI is moving
+            if current_player == game.ai:
                 move = game.get_best_move()
-                if move is not None:
-                    data.append((np.array(game.board, dtype=int), move))
-                    game.make_move(move, game.ai)
+                dataset.append((board_state.copy(), move))
+                game.make_move(move, game.ai)
             else:
-                if random.random() < 0.8:
-                    move = game.get_best_move()
-                else:
-                    move = random.choice(game.available_moves())
-                if move is not None:
-                    game.make_move(move, game.human)
 
-            ai_turn = not ai_turn
+                move = random.choice(game.available_moves())
 
-    print(f"Generated {len(data)} board states.")
-    return data
-
+                game.make_move(move, game.human)
+            
+            # Switch players
+            current_player = game.human if current_player == game.ai else game.ai
+    
+    print(f"Generated {n_games} games total!")
+    return dataset
 
 
 if __name__ == "__main__":
-    dataset = generate_training_data(2000)
+    print("Generating training data...")
+    dataset = generate_training_data(5000)
+    
     X = np.array([state for state, _ in dataset])
     y = np.array([move for _, move in dataset])
-
+    
+    print(f"\nDataset shape:")
+    print(f"X (board states): {X.shape}")
+    print(f"y (moves): {y.shape}")
+    
     np.save("X.npy", X)
     np.save("y.npy", y)
-    print(len(dataset))
-    print(dataset[:5])
+    
+    print("\nSaved to X.npy and y.npy")
+    print("\nExample:")
+    print(f"Board state: {X[0]}")
+    print(f"Best move: {y[0]}")
