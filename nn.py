@@ -8,9 +8,9 @@ import numpy as np
 class NeuralNetwork(nn.Module):
     def __init__(self):
         super().__init__()
-        self.fc1 = nn.Linear(9, 64)
-        self.fc2 = nn.Linear(64, 64)
-        self.output = nn.Linear(64, 9)
+        self.fc1 = nn.Linear(9, 128)
+        self.fc2 = nn.Linear(128, 128)
+        self.output = nn.Linear(128, 9)
         self.relu = nn.ReLU()
 
     def forward(self, x):
@@ -35,7 +35,7 @@ X_test = torch.FloatTensor(X_test)
 y_train = torch.LongTensor(y_train)
 y_test = torch.LongTensor(y_test)
 
-epochs = 100
+epochs = 300
 
 losses = []
 

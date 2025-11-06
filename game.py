@@ -1,12 +1,13 @@
+import random
 import torch
 from torch import nn
 
 class NeuralNetwork(nn.Module):
     def __init__(self):
         super().__init__()
-        self.fc1 = nn.Linear(9, 64)
-        self.fc2 = nn.Linear(64, 64)
-        self.output = nn.Linear(64, 9)
+        self.fc1 = nn.Linear(9, 128)
+        self.fc2 = nn.Linear(128, 128)
+        self.output = nn.Linear(128, 9)
         self.relu = nn.ReLU()
 
     def forward(self, x):
@@ -51,42 +52,37 @@ def ai_move(board):
         move = board.index(0)
     return move
 
-board = [0]*9  # 0=empty, 1=player, 2=AI
+board = [0]*9
 print("Board positions: 0-8 (left to right, top to bottom)")
 
+
+ai_turn = random.choice([True, False])
+
 while True:
-    # --- AI move first ---
-    move = ai_move(board)
-    print(f"AI moves to: {move}")
-    board[move] = 2
-    
-    winner = check_winner(board)
-    if winner is not None:
-        print_board(board)
-        if winner == 1:
-            print("You win!")
-        elif winner == 2:
-            print("AI wins!")
-        else:
-            print("It's a draw!")
-        break
-    
     print_board(board)
 
-    # --- Player move ---
-    move = int(input("Your move (0-8): "))
-    if board[move] != 0:
-        print("Invalid move! Try again.")
-        continue
-    board[move] = 1
+    if ai_turn:
+        move = ai_move(board)
+        print(f"AI moves to: {move}")
+        board[move] = 1  
+    else:
+        move = int(input("Your move (0-8): "))
+        if board[move] != 0:
+            print("Invalid move! Try again.")
+            continue
+        board[move] = -1
+    
+    ai_turn = not ai_turn
 
     winner = check_winner(board)
     if winner is not None:
         print_board(board)
-        if winner == 1:
+        if winner == -1:
             print("You win!")
-        elif winner == 2:
+        elif winner == 1:
             print("AI wins!")
         else:
             print("It's a draw!")
         break
+    
+
